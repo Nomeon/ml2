@@ -197,8 +197,17 @@ class AdminState:
 
     def _on_game_state(self, game_state):
         self._state = game_state
+        tiles = game_state.get("entities")
+        game_board = {(tile.get("x"), tile.get("y")): tile.get("type") for tile in tiles}
+
+        units = game_state.get("unit_state")
+        player_locations = {(unit): game_state.get("unit_state").get(unit).get("coordinates") for unit in units}
+        print(game_board)
+        print(player_locations)
 
     async def _on_game_tick(self, game_tick):
+
+        
         events = game_tick.get("events")
         for event in events:
             event_type = event.get("type")

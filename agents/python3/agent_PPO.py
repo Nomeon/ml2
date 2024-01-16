@@ -58,11 +58,32 @@ class Agent():
         # Run neural network once for all units, instead of calling it multiple times
         # Add code to detonate specific bombs, currently the action "detonate" will detonate the bomb placed first by the unit
 
+        ## Dictionary of (x,y):type
+        ## e.g. {(0,1): 'w'}
+        ## types include: 
+            # a: ammunition
+            # b: Bomb
+            # x: Blast
+            # bp: Blast Powerup
+            # fp: Freeze Powerup
+            # m: Metal Block
+            # o: Ore Block
+            # w: Wooden Block
+        tiles = game_state.get("entities")
+        game_board = {(tile.get("x"), tile.get("y")): tile.get("type") for tile in tiles}
+
+        ## Dictionary of player_locations
+        ## e.g. {'d': [1,9]}
+        units = game_state.get("unit_state")
+        player_locations = {(unit): game_state.get("unit_state").get(unit).get("coordinates") for unit in units}
+
+
         # send each unit a random action
         for unit_id in my_units:
             
             # Generate a random test sample
             spatial_data = np.random.rand(1, *input_shape)
+            print(spatial_data)
             non_spatial_data = np.random.rand(1, num_channels)
 
             # Perform inference
