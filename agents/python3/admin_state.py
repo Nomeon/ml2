@@ -69,7 +69,8 @@ class AdminState:
     def parse_endgame_state(self, payload):
         self._winner = payload.get("winning_agent_id")
         self._total_ticks = payload.get("history")[-1].get("tick")
-        self._unit_hps = self.get_damage_dealt(payload)
+        reward = self.handle_reward(payload)
+        print(reward)
 
         agents_a = self._state.get("agents").get("a").get("unit_ids")
         for agent in agents_a:
@@ -85,27 +86,67 @@ class AdminState:
             bombs_used = payload_unit_state.get("inventory").get("bombs") - unit_state.get("inventory").get("bombs")
             self._b_agents.append((unit_state.get("unit_id"), unit_state.get("hp"), payload_unit_state.get("coordinates"), unit_state.get("coordinates"), bombs_used))
 
-    # Wytse with the sauce
-    def get_damage_dealt(self, payload):
+    ## Calculate reward function:
+    ##      Returns dictionary of each unit_id and its calculated reward
+    ##      reward = 
+    ##          + hp left at end of game  
+    ##          + damage dealt to others 
+    ##          - damage dealt to self        
+    def handle_reward(self, payload):
+        # Initialize hp dictionary
         unit_hps = {}
+        player_dmg = {}
+        reward = {}
 
+        # Load initial hps
         for unit in payload.get("initial_state").get("unit_state"):
             unit_hps[unit] = payload.get("initial_state").get("unit_state").get(unit).get("hp")
+            player_dmg[unit] = 0
+            reward[unit] = 0
 
+        # Compare current hp in tick to stored hp in dictionary
         for tick in payload.get("history"):
             tick_id = tick.get("tick")
             events = tick.get("events")
 
+            # Loop over events
             for event in events:
-                if(event.get("type") == "unit_state"):
+                
+
+                # CHECK FOR PLAYER DAMAGE
+                if (event.get("type") == 'unit_state'):
+                    # Unit that lost hp
                     affected_unit = event.get("data").get("unit_id")
+                    # Stored hp of said unit
                     affected_unit_hp = unit_hps[affected_unit]
+                    # hp of said unit in current tick
                     affected_unit_current_hp = event.get("data").get("hp")
 
-                    if(affected_unit_hp != affected_unit_current_hp):
-                        print(f"{affected_unit} took damage on tick {tick_id}. Remaining HP: {affected_unit_current_hp}") # Convert to dict?
+                    # If there is a discrepancy --> it just lost hp
+                    if(affected_unit_hp) != affected_unit_current_hp:
+                        # coordinates player took damage on
+                        coordinates = event.get("data").get("coordinates")
+
+                        # check for explosions in those coordinates
+                        for event2 in events:
+                            # if explosion spawned on that exact coordinate (still on same tick) we count it as damage dealt
+                            # EDGE CASE: players walking into explosions after explosion spawns
+                            if (event2.get("type") == 'entity_spawned') and (event2.get("data").get("type") == "x") and (event2.get("data").get("x") == coordinates[0]) and (event2.get("data").get("y") == coordinates[1]):
+                                print(affected_unit, "took damage on tick: ", tick_id, "from: ", event2.get("data").get("unit_id"), ". Remaining hp: ", affected_unit_current_hp)
+                                affecting_unit = event2.get("data").get("unit_id")
+
+                                # add player_dmg if dealt dmg, if hit self subtract player_dmg
+                                if affecting_unit != affected_unit:
+                                    player_dmg[affecting_unit]+=1 
+                                else: 
+                                    player_dmg[affecting_unit] -= 1
                         unit_hps[affected_unit] = affected_unit_current_hp
-        return unit_hps
+        
+        # Assign reward to units
+        for unit in payload.get("initial_state").get("unit_state"):
+            reward[unit] = unit_hps[unit] + player_dmg[unit]
+
+        return reward
 
     async def connect(self):
         self.connection = await websockets.connect(self._connection_string)
