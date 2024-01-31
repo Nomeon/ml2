@@ -65,6 +65,7 @@ class GameState:
             payload = data.get("payload")
             winning_agent_id = payload.get("winning_agent_id")
             print(f"Game over. Winner: Agent {winning_agent_id}")
+            await self._tick_callback(1000, self._state)
         else:
             print(f"unknown packet \"{data_type}\": {data}")
 

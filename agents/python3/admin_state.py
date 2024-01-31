@@ -186,7 +186,7 @@ class AdminState:
             self.save_vars_from_state_to_disk()
             self.reset_vars()
 
-            if self._game_count < 1:
+            if self._game_count < 2:
                 await self._send({"type": "request_game_reset", "world_seed": 1234, "prng_seed": 1234})
                 self._game_count += 1
                 print(f"Game reset requested to start game {self._game_count}")

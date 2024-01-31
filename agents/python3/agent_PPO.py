@@ -49,6 +49,10 @@ class Agent():
 
     async def _on_game_tick(self, tick_number, game_state):
 
+        if tick_number == 1000:
+            self._save_weights()
+            return
+
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
         my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
@@ -148,6 +152,8 @@ class Agent():
             else:
                 print(f"Unhandled action: {action} for unit {unit_id}")
 
+    def _save_weights(self):
+        self.cnn.save_weights(f'/app/data/weights.h5')
 
 def main():
     for i in range(0,10):
