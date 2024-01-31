@@ -10,23 +10,22 @@ import numpy as np
 uri = os.environ.get(
     'GAME_CONNECTION_STRING') or "ws://127.0.0.1:3000/?role=agent&agentId=agentId&name=defaultName"
 
-actions = ["up", "down", "left", "right", "bomb", "detonate"]
 
-# To do: put in init and use game_state information for width and height 
-num_channels = 10
-input_shape = (15, 15, num_channels)
-num_actions = 6 
-hidden_units = 64
 
 class Agent():
     def __init__(self):
 
         self._client = GameState(uri)
 
-        # any initialization code can go here
+        # Init settings for cnn
+        self._actions = ["up", "down", "left", "right", "bomb", "detonate"]
+        self._non_spatial_shape = 3
+        self._input_shape = (15, 15, 10)
+        self._num_actions = 6
+        self._hidden_units = 64
 
         # Create cnn
-        self.cnn = create_cnn.create_cnn(input_shape, num_channels, num_actions, hidden_units)
+        self.cnn = create_cnn.create_cnn(self._input_shape, self._non_spatial_shape, self._num_actions, self._hidden_units)
 
         self._client.set_game_tick_callback(self._on_game_tick)
 
@@ -75,26 +74,26 @@ class Agent():
         tiles = game_state.get("entities")
 
         # CNN Spatial Input
-        cnn_spatial_input = np.zeros(input_shape)
+        cnn_spatial_input = np.zeros(self._input_shape)
 
         for tile in tiles:
-            type = tile.get("type")
+            tile_type = tile.get("type")
 
             # If type is not a bomb:
-            if type in tile_dict:
-                cnn_spatial_input[tile.get("x"), tile.get("y"), tile_dict[type]] = 1
+            if tile_type in tile_dict:
+                cnn_spatial_input[tile.get("x"), tile.get("y"), tile_dict[tile_type]] = 1
 
             # If type is bomb from player
-            elif type == 'b' and tile['agent_id'] == my_agent_id:
+            elif tile_type == 'b' and tile['agent_id'] == my_agent_id:
                 cnn_spatial_input[tile.get("x"), tile.get("y"), 6] = 1
 
             # If type is bomb from enemy 
-            elif type == 'b' and tile['agent_id'] != my_agent_id:
+            elif tile_type == 'b' and tile['agent_id'] != my_agent_id:
                 cnn_spatial_input[tile.get("x"), tile.get("y"), 7] = 1
             
             # Unknown entity
             else:
-                print(f'Tile type {type} not in tile_dict or bomb')
+                print(f'Tile type {tile_type} not in tile_dict or bomb')
 
         # Add information from units:
         for unit in game_state.get("unit_state"):
@@ -112,24 +111,32 @@ class Agent():
 
         # send each unit a random action
         for unit_id in my_units:
-            
+            cur_unit = ord(unit_id)
+            cur_hp = game_state.get("unit_state")[unit_id].get("hp")
+
+            # Get current game tick, unit, and HP
+            non_spatial_data = np.array([[tick_number, cur_unit, cur_hp]])
+
             # Generate a random test sample for non_spatial data
-            non_spatial_data = np.random.rand(1, num_channels)
+            # non_spatial_data = np.random.rand(1, 10)
 
             # Perform inference
             output_probabilities = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
 
             # Select action
-            action = np.argmax(output_probabilities)
+            action = np.argmax(output_probabilities[0][0])
+
+            print(f'OUTPUT PROB: {output_probabilities[0]}')
+            print(f'Sending action: {self._actions[action]} for unit {unit_id}')
 
             if action == 0:
                 await self._client.send_move("up", unit_id)
             elif action == 1:
-                await self._client.send_move("right", unit_id)
-            elif action == 2:
                 await self._client.send_move("down", unit_id)
-            elif action == 3:
+            elif action == 2:
                 await self._client.send_move("left", unit_id)
+            elif action == 3:
+                await self._client.send_move("right", unit_id)
             elif action == 4:
                 await self._client.send_bomb(unit_id)
             elif action == 5:

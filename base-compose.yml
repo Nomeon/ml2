@@ -51,3 +51,10 @@ services:
             dockerfile: Dockerfile.admin.dev
         volumes:
             - ./agents/python3:/app
+
+    python3-ppo-dev:
+        build:
+            context: agents/python3
+            dockerfile: Dockerfile.ppo.dev
+        volumes:
+            - ./agents/python3:/app
