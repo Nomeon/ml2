@@ -36,6 +36,8 @@ class Agent():
         ]
         loop.run_until_complete(asyncio.wait(tasks))
 
+        self._prev_state = None
+
     # returns coordinates of the first bomb placed by a unit
     def _get_bomb_to_detonate(self, unit) -> Union[int, int] or None:
         entities = self._client._state.get("entities")
@@ -52,6 +54,11 @@ class Agent():
         if tick_number == 1000:
             self._save_weights()
             return
+        elif tick_number == 1:
+            self._prev_state = game_state
+
+        # Update Network
+        self._calculate_reward(game_state)  # Or do it for every unit move?
 
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
@@ -152,8 +159,40 @@ class Agent():
             else:
                 print(f"Unhandled action: {action} for unit {unit_id}")
 
+
     def _save_weights(self):
         self.cnn.save_weights(f'/app/data/weights.h5')
+
+    def _calculate_reward(self, game_state):
+        my_agent_id = game_state.get("connection").get("agent_id")
+        my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
+
+        reward = 0  # Placeholder reward, modify as per game objectives
+
+        for unit_id in my_units:
+            prev_coordinates = self._prev_state.get("unit_state")[unit_id].get("coordinates")
+            coordinates = game_state.get("unit_state")[unit_id].get("coordinates")
+
+            prev_hp =  int(self._prev_state.get("unit_state")[unit_id].get("hp"))
+            hp =  int(game_state.get("unit_state")[unit_id].get("hp"))
+
+            prev_bombs = int(self._prev_state.get("unit_state")[unit_id].get("inventory").get("bombs"))
+            bombs = int(game_state.get("unit_state")[unit_id].get("inventory").get("bombs"))
+
+            if prev_coordinates != coordinates:
+                # Unit moved
+                reward += (-1)
+            else:
+                # Unit not moved
+                reward += (-10)  # Invalid moves included
+            if prev_hp > hp:
+                # Lost HP
+                reward += (-100)
+            if prev_bombs > bombs:
+                reward += (50)
+
+        self._prev_states = game_state
+        return reward
 
 def main():
     for i in range(0,10):
