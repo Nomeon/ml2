@@ -1,12 +1,9 @@
 import tensorflow as tf
-import os
 
-# TO DO:
-# Add value function estimation head of neural network, as used by the PPO algorithm
 
-def create_cnn(input_shape, num_channels, num_actions, hidden_units):
+def create_cnn(spatial_input_shape, non_spatial_input_shape, num_actions, hidden_units):
     # Define input layer for spatial data
-    spatial_input = tf.keras.layers.Input(shape=input_shape, name='spatial_input')
+    spatial_input = tf.keras.layers.Input(shape=spatial_input_shape, name='spatial_input')
 
     # Build convolutional layers for feature extraction from spatial data
     x = spatial_input
@@ -19,7 +16,7 @@ def create_cnn(input_shape, num_channels, num_actions, hidden_units):
     x = tf.keras.layers.Flatten()(x)
 
     # Define input layer for non-spatial data
-    non_spatial_input = tf.keras.layers.Input(shape=(num_channels,), name='non_spatial_input')
+    non_spatial_input = tf.keras.layers.Input(shape=non_spatial_input_shape, name='non_spatial_input')
 
     # Concatenate output from convolutional layers with non-spatial data
     merged_input = tf.keras.layers.concatenate([x, non_spatial_input], axis=-1)
@@ -30,73 +27,42 @@ def create_cnn(input_shape, num_channels, num_actions, hidden_units):
     x = tf.keras.layers.Dense(hidden_units, activation='relu', kernel_initializer='he_normal')(x)
 
     # Output layer for action probabilities
-    output_layer = tf.keras.layers.Dense(num_actions, activation='softmax', name='output_layer')(x)
+    output_layer_actions = tf.keras.layers.Dense(num_actions, activation='softmax', name='output_layer_actions')(x)
+
+    # Output layer for estimating baseline
+    output_layer_baseline = tf.keras.layers.Dense(1, name='output_layer_baseline')(x)
 
     # Create and compile the model
-    model = tf.keras.Model(inputs=[spatial_input, non_spatial_input], outputs=output_layer)
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    model = tf.keras.Model(inputs=[spatial_input, non_spatial_input], outputs=[output_layer_actions, output_layer_baseline])
+    model.compile(optimizer='adam', loss={'output_layer_actions': 'categorical_crossentropy', 'output_layer_baseline': 'mean_squared_error'}, metrics=['accuracy'])
+
 
     return model
 
 
+# import numpy as np
+
 # # Example usage:
 # # Specify the input shape, number of channels, and other parameters
-# input_shape = (15, 15, 1)
-# num_channels = 3  # Assuming 3 channels for spatial data
-# num_actions = 6  # Assuming 6 possible actions (adjust as needed)
+# num_channels = 10
+# spatial_input_shape = (15, 15, num_channels) # width * height * num_channels
+# non_spatial_input_shape = 5 # number of features not related to spatial data (health, current blast radius etc.)
+# num_actions = 6 
+# hidden_units = 64
 
 # # Create the model
-# model = create_cnn(input_shape=input_shape, num_channels=num_channels, num_actions=num_actions)
+# model = create_cnn(spatial_input_shape, non_spatial_input_shape, num_actions, hidden_units)
 
-# # Display the model summary
-# model.summary()
+# # Get input
+# # Note that np.expand_dims is used since the first dimension normally represents the batch size, so spatial data input shape = (batch size, width, height, num_channels), non-spatial input shape = (batch size, number of non-spatial features)
+# spatial_data = np.expand_dims(np.random.randint(0, 2, spatial_input_shape), axis=0) # Provide spatial data as input
+# non_spatial_data = np.expand_dims(np.random.randint(0, 6, non_spatial_input_shape), axis=0) # Provide non-spatial data as input
 
-# # Save the model architecture as an image file
-# plot_model(model, to_file='model_architecture.png', show_shapes=True, show_layer_names=True)
+# # Get action probabilities and estimated baseline
+# action_probabilities, estimated_baseline = model([spatial_data, non_spatial_data])
 
+# # Sample action
+# sampled_action = np.random.choice(np.arange(num_actions), p=action_probabilities[0].numpy())
 
-# # TEST
-
-# import numpy as np
-# import time
-
-# # Initialize the model with random weights
-# model.build(input_shape=[(None,) + input_shape, (None, num_channels)])
-# model.summary()
-
-# # # Generate a random test sample
-# # spatial_data = np.random.rand(1, *input_shape)
-# # non_spatial_data = np.random.rand(1, num_channels)
-
-# # # Measure the time it takes to get the output for a single test sample
-# # start_time = time.time()
-# # #output_probabilities = model.predict([spatial_data, non_spatial_data])
-
-# # output_probabilities = model([spatial_data, non_spatial_data], training=False)
-
-# # end_time = time.time()
-
-# # Generate a random test sample
-# spatial_data = np.random.rand(1, *input_shape)
-# non_spatial_data = np.random.rand(1, num_channels)
-
-# # Convert NumPy arrays to TensorFlow tensors
-# spatial_data_tensor = tf.constant(spatial_data, dtype=tf.float32)
-# non_spatial_data_tensor = tf.constant(non_spatial_data, dtype=tf.float32)
-
-# # Measure the time it takes to get the output for a single test sample
-# start_time = time.time()
-
-# # Perform inference using tensors as input
-# output_probabilities = model([spatial_data_tensor, non_spatial_data_tensor], training=False)
-
-# end_time = time.time()
-
-# # Convert the output to a NumPy array
-# output_probabilities_np = output_probabilities.numpy()
-
-# # Display the output probabilities
-# print("Output Probabilities:", output_probabilities)
-
-# # Display the time taken for prediction
-# print("Time taken for prediction:", end_time - start_time, "seconds")
+# # Get the estimated baseline
+# baseline_estimate = estimated_baseline[0][0]
