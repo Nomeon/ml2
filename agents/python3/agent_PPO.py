@@ -12,8 +12,9 @@ uri = os.environ.get(
 
 actions = ["up", "down", "left", "right", "bomb", "detonate"]
 
-input_shape = (15, 15, 1)
-num_channels = 1 
+# To do: put in init and use game_state information for width and height 
+num_channels = 10
+input_shape = (15, 15, num_channels)
 num_actions = 6 
 hidden_units = 64
 
@@ -69,25 +70,54 @@ class Agent():
             # m: Metal Block
             # o: Ore Block
             # w: Wooden Block
+        
+        tile_dict = {'x' : 0, 'm' : 1, 'o' : 2, 'w' : 3, 'bp' : 4, 'fp' : 5}
         tiles = game_state.get("entities")
-        game_board = {(tile.get("x"), tile.get("y")): tile.get("type") for tile in tiles}
 
-        ## Dictionary of player_locations
-        ## e.g. {'d': [1,9]}
-        units = game_state.get("unit_state")
-        player_locations = {(unit): game_state.get("unit_state").get(unit).get("coordinates") for unit in units}
+        # CNN Spatial Input
+        cnn_spatial_input = np.zeros(input_shape)
 
+        for tile in tiles:
+            type = tile.get("type")
+
+            # If type is not a bomb:
+            if type in tile_dict:
+                cnn_spatial_input[tile.get("x"), tile.get("y"), tile_dict[type]] = 1
+
+            # If type is bomb from player
+            elif type == 'b' and tile['agent_id'] == my_agent_id:
+                cnn_spatial_input[tile.get("x"), tile.get("y"), 6] = 1
+
+            # If type is bomb from enemy 
+            elif type == 'b' and tile['agent_id'] != my_agent_id:
+                cnn_spatial_input[tile.get("x"), tile.get("y"), 7] = 1
+            
+            # Unknown entity
+            else:
+                print(f'Tile type {type} not in tile_dict or bomb')
+
+        # Add information from units:
+        for unit in game_state.get("unit_state"):
+
+            # Player units
+            if game_state["unit_state"][unit]["agent_id"] == my_agent_id:
+                cnn_spatial_input[game_state["unit_state"][unit]["coordinates"][0], game_state["unit_state"][unit]["coordinates"][1], 8] = 1
+            
+            # Enemy units
+            else:
+                cnn_spatial_input[game_state["unit_state"][unit]["coordinates"][0], game_state["unit_state"][unit]["coordinates"][1], 9] = 1
+
+        # Expand dimension of array (representing number of samples)
+        cnn_spatial_input = np.expand_dims(cnn_spatial_input, axis=0)
 
         # send each unit a random action
         for unit_id in my_units:
             
-            # Generate a random test sample
-            spatial_data = np.random.rand(1, *input_shape)
-            print(spatial_data)
+            # Generate a random test sample for non_spatial data
             non_spatial_data = np.random.rand(1, num_channels)
 
             # Perform inference
-            output_probabilities = self.cnn([spatial_data, non_spatial_data], training=False)
+            output_probabilities = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
 
             # Select action
             action = np.argmax(output_probabilities)
