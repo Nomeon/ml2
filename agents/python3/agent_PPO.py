@@ -1,5 +1,6 @@
 from typing import Union
 from game_state import GameState
+from PPO import PPO
 import asyncio
 import random
 import os
@@ -27,6 +28,22 @@ class Agent():
         # Create cnn
         self.cnn = create_cnn.create_cnn(self._input_shape, self._non_spatial_shape, self._num_actions, self._hidden_units)
 
+        # Init settings for training
+        self._states = []
+        self._actions = []
+        self._rewards = []
+        
+        # Create PPO
+        # Hyperparameters
+        self._gamma = 0.99
+        self._lr = 0.001
+        self._epsilon = 0.2
+        self._batch_size = 64
+
+        state_dim = None
+
+        self.ppo = PPO(state_dim, self._num_actions, self._lr, self._gamma, self._epsilon, self._batch_size)  # TODO: state dimension?
+
         self._client.set_game_tick_callback(self._on_game_tick)
 
         loop = asyncio.get_event_loop()
@@ -52,13 +69,24 @@ class Agent():
     async def _on_game_tick(self, tick_number, game_state):
 
         if tick_number == 1000:
+            # Update Network
+            values = None
+            next_value = None
+            _, advantages = self.ppo.compute_advantage(self._rewards, values, next_value)  # TODO: values?
+
+            old_probs = None
+            self.ppo.train(self._states, self._actions, old_probs, advantages)  # TODO: old_probs?
+
             self._save_weights()
+
+            # Reset settings for training new game
+            self._states = []
+            self._actions = []
+            self._rewards = []
+
             return
         elif tick_number == 1:
             self._prev_state = game_state
-
-        # Update Network
-        self._calculate_reward(game_state)  # Or do it for every unit move?
 
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
@@ -137,6 +165,9 @@ class Agent():
             # Select action
             action = np.argmax(output_probabilities[0][0])
 
+            self._update_training_data(state=[cnn_spatial_input, non_spatial_data], action=action, 
+                                       game_state=game_state, tick_number=tick_number, unit=unit_id)
+
             print(f'OUTPUT PROB: {output_probabilities[0]}')
             print(f'Sending action: {self._actions[action]} for unit {unit_id}')
 
@@ -163,33 +194,42 @@ class Agent():
     def _save_weights(self):
         self.cnn.save_weights(f'/app/data/weights.h5')
 
-    def _calculate_reward(self, game_state):
-        my_agent_id = game_state.get("connection").get("agent_id")
-        my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
+    def _update_training_data(self, state, action, game_state, tick_number, unit):
+        if tick_number != 1:
+            reward = self._calculate_reward(game_state, unit)
+            self._rewards.append(reward)
+        
+        self._states.append(state)
+        self._actions.append(action)
 
+    def _calculate_reward(self, game_state, current_unit):
         reward = 0  # Placeholder reward, modify as per game objectives
 
-        for unit_id in my_units:
-            prev_coordinates = self._prev_state.get("unit_state")[unit_id].get("coordinates")
-            coordinates = game_state.get("unit_state")[unit_id].get("coordinates")
+        prev_coordinates = self._prev_state.get("unit_state")[current_unit].get("coordinates")
+        coordinates = game_state.get("unit_state")[current_unit].get("coordinates")
 
-            prev_hp =  int(self._prev_state.get("unit_state")[unit_id].get("hp"))
-            hp =  int(game_state.get("unit_state")[unit_id].get("hp"))
+        prev_hp =  int(self._prev_state.get("unit_state")[current_unit].get("hp"))
+        hp =  int(game_state.get("unit_state")[current_unit].get("hp"))
 
-            prev_bombs = int(self._prev_state.get("unit_state")[unit_id].get("inventory").get("bombs"))
-            bombs = int(game_state.get("unit_state")[unit_id].get("inventory").get("bombs"))
+        prev_bombs = int(self._prev_state.get("unit_state")[current_unit].get("inventory").get("bombs"))
+        bombs = int(game_state.get("unit_state")[current_unit].get("inventory").get("bombs"))
 
-            if prev_coordinates != coordinates:
-                # Unit moved
-                reward += (-1)
-            else:
-                # Unit not moved
-                reward += (-10)  # Invalid moves included
-            if prev_hp > hp:
-                # Lost HP
-                reward += (-100)
-            if prev_bombs > bombs:
-                reward += (50)
+        if prev_coordinates != coordinates:
+            # Unit moved
+            reward += (-1)
+        else:
+            # Unit not moved
+            reward += (-10)  # Invalid moves included
+        if prev_hp > hp:
+            # Lost HP
+            reward += (-100)
+        if prev_bombs > bombs:
+            # Bomb placed
+            reward += (50)
+
+        # TODO:
+            # Add reward for being the last unit alive
+            # Add penalty for being close to a bomb
 
         self._prev_states = game_state
         return reward
