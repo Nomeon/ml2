@@ -29,6 +29,12 @@ class Agent():
         # Create cnn
         self.cnn = create_cnn.create_cnn(self._input_shape, self._non_spatial_shape, self._num_actions, self._hidden_units)
 
+        # PPO Hyperparameters
+        self._gamma = 0.99
+        self._lr = 0.001
+        self._epsilon = 0.2
+        self._batch_size = 3
+
         # Init settings for training
         self._states = []
         self._actions = []
@@ -37,14 +43,8 @@ class Agent():
         self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)]*self._batch_size]
         self._new_probs = []
         
-        # PPO Hyperparameters
-        self._gamma = 0.99
-        self._lr = 0.001
-        self._epsilon = 0.2
-        self._batch_size = 3
-        
         # Create PPO
-        #self.ppo = PPO(self.cnn, self._lr, self._gamma, self._epsilon, self._batch_size)
+        self.ppo = PPO(self.cnn, self._lr, self._gamma, self._epsilon, self._batch_size)
 
         self._client.set_game_tick_callback(self._on_game_tick)
 
@@ -70,7 +70,7 @@ class Agent():
 
     async def _on_game_tick(self, tick_number, game_state):
         if len(self._rewards) >= self._batch_size:
-            """
+            
             # Update Network
             self._states = np.array(self._states[:self._batch_size])
             self._actions = np.array(self._actions[:self._batch_size])
@@ -89,13 +89,13 @@ class Agent():
             self._rewards = []
             self._values = []
             self._old_probs = copy(self._new_probs)
-            self._new_probs = []"""
-            pass
+            self._new_probs = []
 
         if tick_number == 1000:
             self._save_weights()
             return
         elif tick_number == 1:
+            #print("========================", game_state.get("connection").get("agent_id"), "============================")
             self._prev_state = game_state
 
         # get my units
@@ -170,17 +170,21 @@ class Agent():
             # non_spatial_data = np.random.rand(1, 10)
 
             # Perform inference
-            action_probabilities, estimated_baseline = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
+            # action_probabilities, estimated_baseline = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
+            prediction = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
+            action_probabilities = prediction[0][0]
+            estimated_baseline = prediction[1][0][0]
             self._new_probs.append(action_probabilities)
 
             # Select action
-            # action = np.argmax(action_probabilities[0])
+            # action = np.argmax(action_probabilities)
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities[0].numpy())
 
             self._update_training_data(state=[cnn_spatial_input, non_spatial_data], action=action, 
-                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
+                                      game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
             print(f'OUTPUT PROB: {action_probabilities}')
+            # print(f'BASELINE: {action_probabilities[1][0]}')
             print(f'Sending action: {self._actions[action]} for unit {unit_id}')
 
             if action == 0:
