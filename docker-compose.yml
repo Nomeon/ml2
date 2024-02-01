@@ -13,7 +13,7 @@ services:
             - PRNG_SEED=1234
             - SHUTDOWN_ON_GAME_END_ENABLED=0
             - TELEMETRY_ENABLED=1
-            - TICK_RATE_HZ=30
+            - TICK_RATE_HZ=1
             - TRAINING_MODE_ENABLED=0
             - WORLD_SEED=1234
         deploy:
@@ -29,9 +29,9 @@ services:
         extends:
             file: base-compose.yml
             # update next line with a service in base-compose.yml to change agent
-            service: python3-agent-dev
+            service: python3-ppo-dev
         environment:
-            - GAME_CONNECTION_STRING=ws://game-engine:3000/?role=agent&agentId=agentA&name=python3-agent-dev
+            - GAME_CONNECTION_STRING=ws://game-engine:3000/?role=agent&agentId=agentA&name=python3-ppo-dev-2
         depends_on:
             - game-engine
         deploy:
