@@ -70,9 +70,13 @@ class Agent():
 
         if tick_number == 1000:
             # Update Network
+            self._states = np.array(self._states[:-1])
+            self._actions = np.array(self._actions[:-1])
+            self._rewards = np.array(self._rewards)
+
             values = None
             next_value = None
-            _, advantages = self.ppo.compute_advantage(self._rewards, values, next_value)  # TODO: values?
+            _, advantages = self.ppo.compute_advantage(self._rewards, values, next_value)  # TODO: values, new_values?
 
             old_probs = None
             self.ppo.train(self._states, self._actions, old_probs, advantages)  # TODO: old_probs?
