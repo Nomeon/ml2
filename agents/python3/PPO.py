@@ -46,16 +46,16 @@ class PPO:
         loss = -tf.reduce_mean(tf.minimum(surr1, surr2))
         return loss
 
-    def train_step(self, actions, old_probs, new_probs, advantages):
+    def train_step(self, old_probs, new_probs, advantages):
         with tf.GradientTape() as tape:
-            loss = self._surrogate_loss(old_probs, actions, new_probs, advantages)
+            loss = self._surrogate_loss(old_probs, new_probs, advantages)
 
         gradients = tape.gradient(loss, self.policy.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.policy.trainable_variables))
 
-    def train(self, states, actions, old_probs, advantages):
+    def train(self, old_probs, new_probs, advantages):
         for _ in range(self.epochs):
-            self.train_step(states, actions, old_probs, advantages)
+            self.train_step(old_probs, new_probs, advantages)
 
     # def compute_advantage(self, states, rewards, next_value):
     #     advantages = np.zeros_like(rewards, dtype=np.float32)

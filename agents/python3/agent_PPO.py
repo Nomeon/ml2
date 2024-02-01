@@ -41,10 +41,10 @@ class Agent():
         self._gamma = 0.99
         self._lr = 0.001
         self._epsilon = 0.2
-        self._batch_size = 64
+        self._batch_size = 3
         
         # Create PPO
-        self.ppo = PPO(self.cnn, self._lr, self._gamma, self._epsilon, self._batch_size)
+        #self.ppo = PPO(self.cnn, self._lr, self._gamma, self._epsilon, self._batch_size)
 
         self._client.set_game_tick_callback(self._on_game_tick)
 
@@ -70,6 +70,7 @@ class Agent():
 
     async def _on_game_tick(self, tick_number, game_state):
         if len(self._rewards) >= self._batch_size:
+            """
             # Update Network
             self._states = np.array(self._states[:self._batch_size])
             self._actions = np.array(self._actions[:self._batch_size])
@@ -80,7 +81,7 @@ class Agent():
 
             _, advantages = self.ppo.compute_advantage(self._rewards, self._values)
 
-            self.ppo.train(self._states, self._actions, self._old_probs, self._new_probs, advantages)
+            self.ppo.train(self._old_probs, self._new_probs, advantages)
 
             # Reset settings for training new game
             self._states = []
@@ -88,7 +89,8 @@ class Agent():
             self._rewards = []
             self._values = []
             self._old_probs = copy(self._new_probs)
-            self._new_probs = []
+            self._new_probs = []"""
+            pass
 
         if tick_number == 1000:
             self._save_weights()
