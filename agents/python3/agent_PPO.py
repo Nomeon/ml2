@@ -36,11 +36,11 @@ class Agent():
         self._batch_size = 3
 
         # Init settings for training
-        self._states = []
-        self._actions = []
+        # self._states = []
+        # self._actions = []
         self._rewards = []
         self._values = []
-        self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)]*self._batch_size]
+        self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)] for _ in range(self._batch_size)]
         self._new_probs = []
         
         # Create PPO
@@ -69,23 +69,24 @@ class Agent():
             return None
 
     async def _on_game_tick(self, tick_number, game_state):
+        print("TICKING TICKING")
         if len(self._rewards) >= self._batch_size:
             
             # Update Network
-            self._states = np.array(self._states[:self._batch_size])
-            self._actions = np.array(self._actions[:self._batch_size])
+            # self._states = np.array(self._states[:self._batch_size])
+            # self._actions = np.array(self._actions[:self._batch_size])
             self._rewards = np.array(self._rewards[:self._batch_size])
-            self._values = np.asarray(self._values[:self._batch_size])
-            self._new_probs = np.asarray(self._new_probs[:self._batch_size])
-            self._old_probs = np.asarray(self._old_probs[:self._batch_size])    
+            self._values = np.array(self._values[:self._batch_size])
+            self._new_probs = np.array(self._new_probs[:self._batch_size])
+            self._old_probs = np.array(self._old_probs[:self._batch_size])    
 
             _, advantages = self.ppo.compute_advantage(self._rewards, self._values)
 
             self.ppo.train(self._old_probs, self._new_probs, advantages)
 
             # Reset settings for training new game
-            self._states = []
-            self._actions = []
+            # self._states = []
+            # self._actions = []
             self._rewards = []
             self._values = []
             self._old_probs = copy(self._new_probs)
@@ -101,7 +102,6 @@ class Agent():
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
         my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
-
         # TO DO:
 
         # Run neural network once for all units, instead of calling it multiple times
@@ -178,14 +178,15 @@ class Agent():
 
             # Select action
             # action = np.argmax(action_probabilities)
-            action = np.random.choice(np.arange(self._num_actions), p=action_probabilities[0].numpy())
+            action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
 
             self._update_training_data(state=[cnn_spatial_input, non_spatial_data], action=action, 
                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
             print(f'OUTPUT PROB: {action_probabilities}')
             # print(f'BASELINE: {action_probabilities[1][0]}')
-            print(f'Sending action: {self._actions[action]} for unit {unit_id}')
+            print(f'action: {action}')
+            # print(f'Sending action: {self._actions[action]} for unit {unit_id}')
 
             if action == 0:
                 await self._client.send_move("up", unit_id)
@@ -215,7 +216,7 @@ class Agent():
             reward = self._calculate_reward(game_state, unit)
             self._rewards.append(reward)
         
-        self._states.append(state)
+        # self._states.append(state)
         self._actions.append(action)
         self._values.append(value)
 
