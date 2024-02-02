@@ -39,7 +39,6 @@ def create_cnn(spatial_input_shape, non_spatial_input_shape, num_actions, hidden
 
     return model
 
-
 # import numpy as np
 
 # # Example usage:
