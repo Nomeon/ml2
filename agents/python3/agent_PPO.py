@@ -41,7 +41,6 @@ class Agent():
         self._rewards = []
         self._values = []
         self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)] for _ in range(self._batch_size)]
-        self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)] for _ in range(self._batch_size)]
         self._new_probs = []
         
         # Create PPO
@@ -70,9 +69,9 @@ class Agent():
             return None
 
     async def _on_game_tick(self, tick_number, game_state):
-        print("TICKING TICKING")
+        print(f'TICKING {tick_number}')
         if len(self._rewards) >= self._batch_size:
-            print(f"{tick_number}========================", self.cnn.get_weights()[0][0][0], "============================")
+            # print(f"{tick_number}========================", self.cnn.get_weights()[0][0][0], "============================")
 
             # Update Network
             self._states = self._states[:self._batch_size]
@@ -86,9 +85,9 @@ class Agent():
             self._old_probs = np.array(self._old_probs[:self._batch_size])    
 
             _, advantages = self.ppo.compute_advantage(self._rewards, self._values)
-
             self.ppo.train(self._states, self._old_probs, self._new_probs, advantages)
 
+        if tick_number == 1000:
             # Reset settings for training new game
             self._states = []
             #self._actions = []
@@ -96,12 +95,10 @@ class Agent():
             self._values = []
             self._old_probs = copy(self._new_probs)
             self._new_probs = []
-
-        if tick_number == 1000:
             self._save_weights()
             return
         elif tick_number == 1:
-            print("first========================", self.cnn.get_weights()[0][0][0], "============================")
+            # print("first========================", self.cnn.get_weights()[0][0][0], "============================")
             #print(self.cnn.get_weights().shape)
             self._prev_state = game_state
 
@@ -180,7 +177,7 @@ class Agent():
             prediction = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
             action_probabilities = prediction[0][0]
             estimated_baseline = prediction[1][0][0]
-            self._new_probs.append(action_probabilities)
+            self._new_probs = np.append(self._new_probs, action_probabilities)
 
             # Select action
             # action = np.argmax(action_probabilities)
@@ -214,6 +211,10 @@ class Agent():
             else:
                 print(f"Unhandled action: {action} for unit {unit_id}")
 
+        if (len(self._rewards) != 0):
+            print(f'REWARD: {sum(self._rewards)}')
+        else:
+            print(f'NO REWARD')
 
     def _save_weights(self):
         self.cnn.save_weights(f'/app/data/weights.h5')
@@ -221,12 +222,15 @@ class Agent():
     def _update_training_data(self, state, action, game_state, tick_number, unit, value):
         if tick_number != 1:
             reward = self._calculate_reward(game_state, unit)
-            self._rewards.append(reward)
+            print(f'REWARD: {reward}')
+            self._rewards = np.append(self._rewards, reward)
         #print("HELLLLLO")
-        
+            print(f'REWARDS: {self._rewards}')
+
         self._states.append(state)
         #self._actions.append(action)
-        self._values.append(value)
+        # self._values.append(value)
+        self._values = np.append(self._values, value)
 
     def _calculate_reward(self, game_state, current_unit):
         reward = 0  # Placeholder reward, modify as per game objectives

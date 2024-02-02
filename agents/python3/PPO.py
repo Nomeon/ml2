@@ -1,20 +1,6 @@
 import tensorflow as tf
 import numpy as np
 
-# class PolicyNetwork(tf.keras.Model):
-#     def __init__(self, input_dim, action_dim):
-#         super(PolicyNetwork, self).__init__()
-#         self.fc1 = tf.keras.layers.Dense(64, activation='relu', input_shape=input_dim)
-#         self.fc2 = tf.keras.layers.Dense(64, activation='relu')
-#         self.fc3 = tf.keras.layers.Dense(action_dim, activation='softmax')
-
-#     def call(self, state):
-#         x = self.fc1(state)
-#         x = self.fc2(x)
-#         action_probs = self.fc3(x)
-#         return action_probs
-
-
 # Proximal Policy Optimization class
 class PPO:
     def __init__(self, model, lr, gamma, epsilon, batch_size=64, epochs=1):
@@ -47,22 +33,65 @@ class PPO:
         loss = -tf.reduce_mean(tf.minimum(surr1, surr2))
         return loss
 
+    # def train_step(self, states, old_probs, new_probs, advantages):
+    #     with tf.GradientTape() as tape:
+    #         # for var in self.policy.trainable_variables:
+    #         #     print(f'VAR: {var.name}, TRAIN: {var.trainable}\n')
+    #         # tape.watch(self.policy.trainable_variables)
+
+    #         # new_probs = []
+    #         # for state in states:
+    #         #     prediction = self.policy(state) # , training=False
+                
+    #         #     action_probabilities = prediction[0][0]
+    #         #     estimated_baseline = prediction[1][0][0]
+    #         #     new_probs.append(action_probabilities)
+            
+    #         # loss = self._surrogate_loss(old_probs, new_probs, advantages)
+    #         print(f'STATES: {len(states)}')
+
+    #         predictions = [self.policy(state, training=True) for state in states] # , training=False
+    #         # predictions = tf.stack([self.policy(state, training=True) for state in states])
+    #         print(f'PREDICTIONS: {predictions}')
+    #         # new_probs = [pred[0][0] for pred in predictions]
+    #         new_probs = predictions[:, 0, 0]
+    #         loss= self._surrogate_loss(old_probs, new_probs, advantages)
+
+    #         if loss is None:
+    #             print('LOSS FAILED')
+
+    #         gradients = tape.gradient(loss, self.policy.trainable_variables)
+    #         print(f'GRADIENTS: {gradients}')
+
+    #         if any(g is None for g in gradients):
+    #             print("Gradient is None. Check model architecture or loss function.")
+    #         else:
+    #             print(f'GRADIENTS: {gradients}')
+
+    #     self.optimizer.apply_gradients(zip(gradients, self.policy.trainable_variables))
+
     def train_step(self, states, old_probs, new_probs, advantages):
         with tf.GradientTape() as tape:
-            # tape.watch(self.policy.trainable_variables)
-
+            tape.watch(self.policy.get_layer("output_layer_actions").trainable_variables)
             new_probs = []
+            action_values = []  # If you're using action values for loss calculation
             for state in states:
-                prediction = self.policy(state, training=False)
-                
-                action_probabilities = prediction[0][0]
-                estimated_baseline = prediction[1][0][0]
+                prediction = self.policy(state, training=True)  # Use training=True
+                action_probabilities, estimated_baseline = prediction
                 new_probs.append(action_probabilities)
-            
+                action_values.append(estimated_baseline)
+
+            # Convert lists to tensors if necessary
+            new_probs = tf.convert_to_tensor(new_probs, dtype=tf.float32)
+            advantages = tf.convert_to_tensor(advantages, dtype=tf.float32)
+            old_probs = tf.convert_to_tensor(old_probs, dtype=tf.float32)
+
+            # Calculate loss
             loss = self._surrogate_loss(old_probs, new_probs, advantages)
 
-            gradients = tape.gradient(loss, self.policy.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradients, self.policy.trainable_variables))
+        gradients = tape.gradient(loss, self.policy.get_layer("output_layer_actions").trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.policy.get_layer("output_layer_actions").trainable_variables))
+
 
     def train(self, states, old_probs, new_probs, advantages):
         for _ in range(self.epochs):
@@ -84,3 +113,16 @@ class PPO:
     #         advantages[i] = advantage
 
     #     return returns, advantages
+            
+# class PolicyNetwork(tf.keras.Model):
+#     def __init__(self, input_dim, action_dim):
+#         super(PolicyNetwork, self).__init__()
+#         self.fc1 = tf.keras.layers.Dense(64, activation='relu', input_shape=input_dim)
+#         self.fc2 = tf.keras.layers.Dense(64, activation='relu')
+#         self.fc3 = tf.keras.layers.Dense(action_dim, activation='softmax')
+
+#     def call(self, state):
+#         x = self.fc1(state)
+#         x = self.fc2(x)
+#         action_probs = self.fc3(x)
+#         return action_probs
