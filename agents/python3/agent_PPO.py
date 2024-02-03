@@ -32,10 +32,10 @@ class Agent():
         self.cnn = create_cnn.create_cnn(self._input_shape, self._non_spatial_shape, self._num_actions, self._hidden_units)
 
         # PPO Hyperparameters
-        self._gamma = 0.99
-        self._lr = 0.001
-        self._epsilon = 0.2
-        self._batch_size = 3
+        self._gamma = 0.8
+        self._lr = 0.003
+        self._epsilon = 0.3
+        self._batch_size = 30
 
         # Init settings for training
         self._states = []
@@ -192,16 +192,15 @@ class Agent():
             # Select action
             # action = np.argmax(action_probabilities)
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
-            action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
 
             unit_num += 1
             self._update_training_data(unit_num=unit_num, state=[cnn_spatial_input, non_spatial_data], 
                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
-            print(f'OUTPUT PROB: {action_probabilities}')
+            # print(f'OUTPUT PROB: {action_probabilities}')
             # print(f'BASELINE: {action_probabilities[1][0]}')
-            print(f'action: {action}')
-            # print(f'Sending action: {self._actions[action]} for unit {unit_id}')
+            # print(f'action: {action}')
+            print(f'ACTION: {self._actions[action]} for unit {unit_id}')
 
             if action == 0:
                 await self._client.send_move("up", unit_id)
@@ -233,9 +232,9 @@ class Agent():
     def _update_training_data(self, unit_num, state, game_state, tick_number, unit, value):
         if tick_number != 1:
             reward = self._calculate_reward(unit_num, game_state, unit)
-            print(f'REWARD: {reward}')
+            # print(f'REWARD: {reward}')
             self._rewards = np.append(self._rewards, reward)
-            print(f'REWARDS: {self._rewards}')
+            # print(f'REWARDS: {self._rewards}')
 
         self._states.append(state)
         self._values.append(value)
