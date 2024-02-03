@@ -22,8 +22,11 @@ class PPO:
         # Calculate advantages
         # advantages = np.array(discounted_rewards) - np.array(list(reversed(values)))
         advantages = np.array(rewards) - np.array(values[:-3]) + self.gamma * np.array(values[3:])
+        mean_advantages = np.mean(advantages)
+        std_advantages = np.std(advantages)
+        normalized_advantages = (advantages - mean_advantages) / (std_advantages + 1e-8)
         
-        return discounted_rewards, advantages
+        return discounted_rewards, normalized_advantages
 
     def _surrogate_loss(self, old_probs, new_probs, advantages):
         ratio = new_probs / (old_probs + 1e-8)

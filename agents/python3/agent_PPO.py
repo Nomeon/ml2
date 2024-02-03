@@ -19,9 +19,10 @@ class Agent():
 
         self._prev_state = None
         self._game_count = 0
+        self._agent_id = None
 
         # Init settings for cnn
-        self._actions = ["up", "down", "left", "right", "bomb", "detonate"]
+        self._actions = ["up", "down", "left", "right", "bomb"] # Remove "detonate" for now
         self._non_spatial_shape = 1
         self._input_shape = (15, 15, 10)
         self._num_actions = 5
@@ -31,8 +32,8 @@ class Agent():
         self.cnn = create_cnn.create_cnn(self._input_shape, self._non_spatial_shape, self._num_actions, self._hidden_units)
 
         # PPO Hyperparameters
-        self._gamma = 0.8
-        self._lr = 0.003
+        self._gamma = 0.99
+        self._lr = 0.001
         self._epsilon = 0.3
         self._batch_size = 30
 
@@ -71,7 +72,6 @@ class Agent():
         print(f'TICKING {tick_number}')
 
         if tick_number == 1000:
-            
             self._save_weights()
             return
         elif tick_number == 1:
@@ -111,6 +111,7 @@ class Agent():
 
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
+        self._agent_id = my_agent_id
         my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
         
         # TO DO:
@@ -218,7 +219,7 @@ class Agent():
             print(f'NO REWARD')
 
     def _save_weights(self):
-        self.cnn.save_weights(f'/app/data/weights.h5')
+        self.cnn.save_weights(f'/app/data/{self._agent_id} weights.h5')
 
     def _update_training_data(self, unit_num, state, game_state, tick_number, unit, value):
         if tick_number != 1:

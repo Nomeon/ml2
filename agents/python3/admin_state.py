@@ -190,6 +190,7 @@ class AdminState:
                 await self._send({"type": "request_game_reset", "world_seed": 1234, "prng_seed": 1234})
                 self._game_count += 1
                 print(f"Game reset requested to start game {self._game_count}")
+                print(f'RESTARTING GAME {self._game_count}')
             else:
                 print("Game count limit reached. Exiting.")
         else:
