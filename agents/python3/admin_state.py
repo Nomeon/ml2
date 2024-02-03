@@ -17,7 +17,15 @@ class AdminState:
 
         # Variables for a reward function
         self._winner = None # Either "a" or "b"
+        self._a_games_won = 0
+        self._a_winrate = 0
+        self._a_avg_win_tick = 0
+        self._b_games_won = 0
+        self._b_winrate = 0
+        self._b_avg_win_tick = 0
+
         self._total_ticks = 0 # Total number of ticks in the game
+        self._avg_total_ticks = 0 # Average game length
         self._a_invalid_moves = 0 # Not implemented
         self._a_valid_moves = 0 # Not implemented
         self._a_agents = [] # List of tuples per unit (unit_id, hp, initial_position, final_position, bombs_used)
@@ -67,8 +75,22 @@ class AdminState:
         self._b_agents = []
 
     def parse_endgame_state(self, payload):
-        self._winner = payload.get("winning_agent_id")
         self._total_ticks = payload.get("history")[-1].get("tick")
+        self._avg_total_ticks += (1 / self._game_count) * (self._total_ticks - self._avg_total_ticks)
+
+        # Get winner, update games won and winrate
+        self._winner = payload.get("winning_agent_id")
+        if self._winner == "a":
+            self._a_games_won += 1
+            self._a_avg_win_tick += (1 / self._game_count) * (self._total_ticks - self._a_avg_win_tick)
+            self._a_winrate += (1 / self._game_count) * (1 - self._a_winrate)
+            self._b_winrate += (1 / self._game_count) * (0 - self._b_winrate)
+        elif self._winner == "b":
+            self._b_games_won += 1
+            self._b_avg_win_tick += (1 / self._game_count) * (self._total_ticks - self._b_avg_win_tick)
+            self._b_winrate += (1 / self._game_count) * (1 - self._b_winrate)
+            self._a_winrate += (1 / self._game_count) * (0 - self._a_winrate)
+
         reward = self.handle_reward(payload)
         print(reward)
 
@@ -183,6 +205,10 @@ class AdminState:
             payload = data.get("payload")
             self.parse_endgame_state(payload)
             print(f"Game over. Winner: Agent {self._winner}")
+            print(f'Game took {self._total_ticks} ticks, average duration {self._avg_total_ticks}')
+            print(f'Avg win tick agent a {self._a_avg_win_tick}, avg win tick agent b {self._b_avg_win_tick}')
+            print(f'Agent a won {self._a_games_won} games in total with winrate {self._a_winrate}')
+            print(f'Agent b won {self._b_games_won} games in total with winrate {self._b_winrate}')
             self.save_vars_from_state_to_disk()
             self.reset_vars()
 
@@ -202,8 +228,8 @@ class AdminState:
 
         units = game_state.get("unit_state")
         player_locations = {(unit): game_state.get("unit_state").get(unit).get("coordinates") for unit in units}
-        print(game_board)
-        print(player_locations)
+        # print(game_board)
+        # print(player_locations)
 
     async def _on_game_tick(self, game_tick):
 
