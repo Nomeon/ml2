@@ -20,7 +20,8 @@ class PPO:
             discounted_rewards.insert(0, cumulative_rewards)
         
         # Calculate advantages
-        advantages = np.array(discounted_rewards) - np.array(list(reversed(values)))
+        # advantages = np.array(discounted_rewards) - np.array(list(reversed(values)))
+        advantages = np.array(rewards) - np.array(values[:-3]) + self.gamma * np.array(values[3:])
         
         return discounted_rewards, advantages
 

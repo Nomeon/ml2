@@ -98,7 +98,7 @@ class Agent():
             self._old_probs = np.array(self._old_probs[:n])
 
             rewards = deepcopy(np.array(self._rewards[:n]))
-            values = deepcopy(np.array(self._values[:n]))
+            values = deepcopy(np.array(self._values[:n+3]))
             states = deepcopy(self._states[:n])
 
             _, advantages = self.ppo.compute_advantage(rewards, values)
