@@ -25,7 +25,7 @@ class Agent():
         self._actions = ["up", "down", "left", "right", "bomb", "detonate"]
         self._non_spatial_shape = 3
         self._input_shape = (15, 15, 10)
-        self._num_actions = 6
+        self._num_actions = 3
         self._hidden_units = 64
 
         # Create cnn
@@ -265,16 +265,77 @@ class Agent():
         if prev_bombs > bombs:
             # Bomb placed
             reward += (5)
+        
+        if self._is_in_danger(game_state, current_unit):
+            # Add penalty for being close to a bomb
+            reward += (-25)
 
         # TODO:
             # Add reward for being the last unit alive
-            # Add penalty for being close to a bomb
+            
 
         if unit_num == 3:
             print("CHANGE")
             self._prev_state = deepcopy(game_state)
 
         return reward
+    
+    def _is_in_danger(self, game_state, unit_id):
+        unit_position = game_state.get("unit_state")[unit_id].get("coordinates")
+        gameboard = self._get_gameboard(game_state)
+
+        rows = len(gameboard)
+        cols = len(gameboard[0])
+
+
+        # Check for bombs in the same row
+        for j in range(unit_position[1], max(0, unit_position[1] - 3) -1, -1):
+            if gameboard[unit_position[0]][j] == 1:
+                return True
+            elif gameboard[unit_position[0]][j] == -1:
+                break
+        
+        for j in range(unit_position[1], min(cols, unit_position[1] + 4)):
+            if gameboard[unit_position[0]][j] == 1:
+                return True
+            elif gameboard[unit_position[0]][j] == -1:
+                break
+        
+        # Check for bombs in the same column
+        for i in range(unit_position[0], max(0, unit_position[0] - 3) -1, -1):
+            if gameboard[i][unit_position[1]] == 1:
+                return True
+            if gameboard[i][unit_position[1]] == -1:
+                break
+            
+        for i in range(unit_position[0], min(rows, unit_position[0] + 4)):
+            if gameboard[i][unit_position[1]] == 1:
+                return True
+            if gameboard[i][unit_position[1]] == -1:
+                break
+        
+        return False
+    
+    def _get_gameboard(self, game_state):
+        game_board = np.zeros((15,15), dtype=np.int32)
+        # tile_dict = {'x' : 0, 'm' : 1, 'o' : 2, 'w' : 3, 'bp' : 4, 'fp' : 5}
+
+        tiles = game_state.get("entities")
+
+        for tile in tiles:
+            tile_type = tile.get("type")
+
+            # If type is not a bomb:
+            if tile_type in ["m", "o", "w"]:
+                game_board[tile.get("x"), tile.get("y")] = -1
+
+            # If type is bomb
+            elif tile_type == 'b':
+                game_board[tile.get("x"), tile.get("y")] = 1
+        
+
+        return game_board            
+
 
 def main():
     for i in range(0,10):
