@@ -3,13 +3,12 @@ import numpy as np
 
 # Proximal Policy Optimization class
 class PPO:
-    def __init__(self, model, lr, gamma, epsilon, batch_size=64, epochs=1):
+    def __init__(self, model, lr, gamma, epsilon, batch_size=64):
         self.policy = model
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         self.gamma = gamma
         self.epsilon = epsilon
         self.batch_size = batch_size
-        self.epochs = epochs
     
     def compute_advantage(self, rewards, values):
         # Calculate discounted rewards
@@ -53,11 +52,10 @@ class PPO:
             loss = self._surrogate_loss(old_probs, new_probs, advantages)
 
         gradients = tape.gradient(loss, self.policy.get_layer("output_layer_actions").trainable_variables)
+        gradients, _ = tf.clip_by_global_norm(gradients, clip_norm=0.5)
         self.optimizer.apply_gradients(zip(gradients, self.policy.get_layer("output_layer_actions").trainable_variables))
 
         return new_probs
 
     def train(self, states, old_probs, advantages):
-        for _ in range(self.epochs):
-            new_probs = self.train_step(states, old_probs, advantages)
-        return new_probs
+        return self.train_step(states, old_probs, advantages)

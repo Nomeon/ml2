@@ -13,7 +13,6 @@ uri = os.environ.get(
     'GAME_CONNECTION_STRING') or "ws://127.0.0.1:3000/?role=agent&agentId=agentId&name=defaultName"
 
 
-
 class Agent():
     def __init__(self):
         self._client = GameState(uri)
@@ -23,9 +22,9 @@ class Agent():
 
         # Init settings for cnn
         self._actions = ["up", "down", "left", "right", "bomb", "detonate"]
-        self._non_spatial_shape = 3
+        self._non_spatial_shape = 1
         self._input_shape = (15, 15, 10)
-        self._num_actions = 3
+        self._num_actions = 5
         self._hidden_units = 64
 
         # Create cnn
@@ -113,9 +112,8 @@ class Agent():
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
         my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
+        
         # TO DO:
-
-        # Run neural network once for all units, instead of calling it multiple times
         # Add code to detonate specific bombs, currently the action "detonate" will detonate the bomb placed first by the unit
 
         ## Dictionary of (x,y):type
@@ -176,31 +174,24 @@ class Agent():
             cur_hp = game_state.get("unit_state")[unit_id].get("hp")
 
             # Get current game tick, unit, and HP
-            non_spatial_data = np.array([[tick_number, cur_unit, cur_hp]])
-
-            # Generate a random test sample for non_spatial data
-            # non_spatial_data = np.random.rand(1, 10)
+            # non_spatial_data = np.array([[tick_number, cur_unit, cur_hp]])
+            non_spatial_data = np.array([[cur_hp]])
 
             # Perform inference
-            # action_probabilities, estimated_baseline = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
-            prediction = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
+            prediction = self.cnn([cnn_spatial_input, non_spatial_data], training=True)
             action_probabilities = prediction[0][0]
             estimated_baseline = prediction[1][0][0]
 
             # self._new_probs = np.append(self._new_probs, action_probabilities)
 
             # Select action
-            # action = np.argmax(action_probabilities)
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
 
             unit_num += 1
             self._update_training_data(unit_num=unit_num, state=[cnn_spatial_input, non_spatial_data], 
                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
-            # print(f'OUTPUT PROB: {action_probabilities}')
-            # print(f'BASELINE: {action_probabilities[1][0]}')
-            # print(f'action: {action}')
-            print(f'ACTION: {self._actions[action]} for unit {unit_id}')
+            print(f'ACTION: {self._actions[action].upper()} for unit {unit_id.upper()}\nPROBABILITY: {action_probabilities}')
 
             if action == 0:
                 await self._client.send_move("up", unit_id)
@@ -232,9 +223,7 @@ class Agent():
     def _update_training_data(self, unit_num, state, game_state, tick_number, unit, value):
         if tick_number != 1:
             reward = self._calculate_reward(unit_num, game_state, unit)
-            # print(f'REWARD: {reward}')
             self._rewards = np.append(self._rewards, reward)
-            # print(f'REWARDS: {self._rewards}')
 
         self._states.append(state)
         self._values.append(value)
@@ -250,8 +239,8 @@ class Agent():
 
         prev_bombs = int(self._prev_state.get("unit_state")[current_unit].get("inventory").get("bombs"))
         bombs = int(game_state.get("unit_state")[current_unit].get("inventory").get("bombs"))
-        print(f"BOMBS: {coordinates}, {bombs}")
-        print(f"HP: {prev_hp}, {hp}", type(game_state))
+        # print(f"BOMBS: {coordinates}, {bombs}")
+        # print(f"HP: {prev_hp}, {hp}", type(game_state))
 
         if prev_coordinates != coordinates:
             # Unit moved
@@ -264,18 +253,18 @@ class Agent():
             reward += (-100)
         if prev_bombs > bombs:
             # Bomb placed
-            reward += (5)
+            reward += (50)
         
         if self._is_in_danger(game_state, current_unit):
             # Add penalty for being close to a bomb
-            reward += (-25)
+            reward += (-15)
 
         # TODO:
             # Add reward for being the last unit alive
             
 
         if unit_num == 3:
-            print("CHANGE")
+            # print("CHANGE")
             self._prev_state = deepcopy(game_state)
 
         return reward
@@ -333,7 +322,6 @@ class Agent():
             elif tile_type == 'b':
                 game_board[tile.get("x"), tile.get("y")] = 1
         
-
         return game_board            
 
 
