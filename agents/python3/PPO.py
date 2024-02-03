@@ -70,7 +70,7 @@ class PPO:
 
     #     self.optimizer.apply_gradients(zip(gradients, self.policy.trainable_variables))
 
-    def train_step(self, states, old_probs, new_probs, advantages):
+    def train_step(self, states, old_probs, advantages):
         with tf.GradientTape() as tape:
             tape.watch(self.policy.get_layer("output_layer_actions").trainable_variables)
             new_probs = []
@@ -92,10 +92,13 @@ class PPO:
         gradients = tape.gradient(loss, self.policy.get_layer("output_layer_actions").trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.policy.get_layer("output_layer_actions").trainable_variables))
 
+        return new_probs
 
-    def train(self, states, old_probs, new_probs, advantages):
+
+    def train(self, states, old_probs, advantages):
         for _ in range(self.epochs):
-            self.train_step(states, old_probs, new_probs, advantages)
+            new_probs = self.train_step(states, old_probs, advantages)
+        return new_probs
 
     # def compute_advantage(self, states, rewards, next_value):
     #     advantages = np.zeros_like(rewards, dtype=np.float32)

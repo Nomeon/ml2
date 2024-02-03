@@ -16,8 +16,10 @@ uri = os.environ.get(
 
 class Agent():
     def __init__(self):
-
         self._client = GameState(uri)
+
+        self._prev_state = None
+        self._game_count = 0
 
         # Init settings for cnn
         self._actions = ["up", "down", "left", "right", "bomb", "detonate"]
@@ -54,7 +56,6 @@ class Agent():
         ]
         loop.run_until_complete(asyncio.wait(tasks))
 
-        self._prev_state = None
 
     # returns coordinates of the first bomb placed by a unit
     def _get_bomb_to_detonate(self, unit) -> Union[int, int] or None:
@@ -69,40 +70,45 @@ class Agent():
 
     async def _on_game_tick(self, tick_number, game_state):
         print(f'TICKING {tick_number}')
-        if len(self._rewards) >= self._batch_size:
-            # print(f"{tick_number}========================", self.cnn.get_weights()[0][0][0], "============================")
-
-            # Update Network
-            self._states = self._states[:self._batch_size]
-            #self._actions = np.array(self._actions[:self._batch_size])
-            self._rewards = np.array(self._rewards[:self._batch_size])
-            self._values = np.array(self._values[:self._batch_size])
-            self._new_probs = np.array(self._new_probs[:self._batch_size])
-            self._old_probs = np.array(self._old_probs[:self._batch_size])    
-            self._values = np.array(self._values[:self._batch_size])
-            self._new_probs = np.array(self._new_probs[:self._batch_size])
-            self._old_probs = np.array(self._old_probs[:self._batch_size])    
-
-            _, advantages = self.ppo.compute_advantage(self._rewards, self._values)
-            self.ppo.train(self._states, self._old_probs, self._new_probs, advantages)
-            self._states = []
-            self._rewards = []
-            self._values = []
 
         if tick_number == 1000:
-            # Reset settings for training new game
-            self._states = []
-            #self._actions = []
-            self._rewards = []
-            self._values = []
-            self._old_probs = copy(self._new_probs)
-            self._new_probs = []
+            
             self._save_weights()
             return
         elif tick_number == 1:
-            # print("first========================", self.cnn.get_weights()[0][0][0], "============================")
-            #print(self.cnn.get_weights().shape)
-            self._prev_state = game_state
+            # Reset settings for training new game
+            # print(self.cnn.get_weights()[0][0][0])
+
+            self._states = []
+            self._rewards = []
+            self._values = []
+
+            if self._game_count != 0:
+                self._old_probs = copy(self._new_probs)
+
+            self._new_probs = []
+            self._prev_state = game_state.copy()
+
+            self._game_count += 1
+
+        if len(self._rewards) >= self._batch_size:
+            n = min(self._batch_size, len(self._rewards))
+            # print(f"{tick_number}========================", self.cnn.get_weights()[0][0][0], "============================")
+
+            # Update Network
+            self._old_probs = np.array(self._old_probs[:n])
+
+            rewards = copy(np.array(self._rewards[:n]))
+            values = copy(np.array(self._values[:n]))
+            states = copy(self._states[:n])
+
+            _, advantages = self.ppo.compute_advantage(rewards, values)
+            self._new_probs = (self.ppo.train(states, self._old_probs, advantages)).numpy().reshape(-1, self._num_actions)
+
+            self._states = list(self._states[n:])
+            self._rewards = list(self._rewards[n:])
+            self._values = list(self._values[n:])
+            self._old_probs = copy(self._new_probs)
 
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
@@ -179,14 +185,15 @@ class Agent():
             prediction = self.cnn([cnn_spatial_input, non_spatial_data], training=False)
             action_probabilities = prediction[0][0]
             estimated_baseline = prediction[1][0][0]
-            self._new_probs = np.append(self._new_probs, action_probabilities)
+
+            # self._new_probs = np.append(self._new_probs, action_probabilities)
 
             # Select action
             # action = np.argmax(action_probabilities)
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
 
-            self._update_training_data(state=[cnn_spatial_input, non_spatial_data], action=action, 
+            self._update_training_data(state=[cnn_spatial_input, non_spatial_data], 
                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
             print(f'OUTPUT PROB: {action_probabilities}')
@@ -221,7 +228,7 @@ class Agent():
     def _save_weights(self):
         self.cnn.save_weights(f'/app/data/weights.h5')
 
-    def _update_training_data(self, state, action, game_state, tick_number, unit, value):
+    def _update_training_data(self, state, game_state, tick_number, unit, value):
         if tick_number != 1:
             reward = self._calculate_reward(game_state, unit)
             print(f'REWARD: {reward}')
@@ -229,9 +236,7 @@ class Agent():
             print(f'REWARDS: {self._rewards}')
 
         self._states.append(state)
-        #self._actions.append(action)
         self._values.append(value)
-        #self._values = np.append(self._values, value)
 
     def _calculate_reward(self, game_state, current_unit):
         reward = 0  # Placeholder reward, modify as per game objectives
@@ -244,6 +249,8 @@ class Agent():
 
         prev_bombs = int(self._prev_state.get("unit_state")[current_unit].get("inventory").get("bombs"))
         bombs = int(game_state.get("unit_state")[current_unit].get("inventory").get("bombs"))
+        print(f"BOMBS: {coordinates}, {bombs}")
+        print(f"HP: {prev_hp}, {hp}", type(game_state))
 
         if prev_coordinates != coordinates:
             # Unit moved
@@ -262,7 +269,7 @@ class Agent():
             # Add reward for being the last unit alive
             # Add penalty for being close to a bomb
 
-        self._prev_states = game_state
+        self._prev_state = game_state.copy()
         return reward
 
 def main():
