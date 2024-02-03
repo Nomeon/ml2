@@ -19,12 +19,13 @@ class Agent():
 
         self._prev_state = None
         self._game_count = 0
+        self._agent_id = None
 
         # Init settings for cnn
-        self._actions = ["up", "down", "left", "right", "bomb", "detonate"]
+        self._actions = ["up", "down", "left", "right", "bomb"]  # "detonate"
         self._non_spatial_shape = 1
         self._input_shape = (15, 15, 10)
-        self._num_actions = 5
+        self._num_actions = len(self._actions)
         self._hidden_units = 64
 
         # Create cnn
@@ -71,13 +72,11 @@ class Agent():
         print(f'TICKING {tick_number}')
 
         if tick_number == 1000:
-            
-            self._save_weights()
+            self.cnn.save_weights(f'/app/data/{self._agent_id} weights.h5')
             return
+        
         elif tick_number == 1:
             # Reset settings for training new game
-            # print(self.cnn.get_weights()[0][0][0])
-
             self._states = []
             self._rewards = []
             self._values = []
@@ -91,17 +90,16 @@ class Agent():
             self._game_count += 1
 
         if len(self._rewards) >= self._batch_size:
-            n = min(self._batch_size, len(self._rewards))
-            # print(f"{tick_number}========================", self.cnn.get_weights()[0][0][0], "============================")
-
             # Update Network
+            n = min(self._batch_size, len(self._rewards))
+
             self._old_probs = np.array(self._old_probs[:n])
 
             rewards = deepcopy(np.array(self._rewards[:n]))
             values = deepcopy(np.array(self._values[:n+3]))
             states = deepcopy(self._states[:n])
 
-            _, advantages = self.ppo.compute_advantage(rewards, values)
+            advantages = self.ppo.compute_advantage(rewards, values)
             self._new_probs = (self.ppo.train(states, self._old_probs, advantages)).numpy().reshape(-1, self._num_actions)
 
             self._states = list(self._states[n:])
@@ -111,6 +109,7 @@ class Agent():
 
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
+        self._agent_id = my_agent_id
         my_units = game_state.get("agents").get(my_agent_id).get("unit_ids")
         
         # TO DO:
@@ -182,7 +181,6 @@ class Agent():
             action_probabilities = prediction[0][0]
             estimated_baseline = prediction[1][0][0]
 
-            # self._new_probs = np.append(self._new_probs, action_probabilities)
 
             # Select action
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
@@ -255,9 +253,10 @@ class Agent():
             # Bomb placed
             reward += (50)
         
-        if self._is_in_danger(game_state, current_unit):
+        is_danger, penalty = self._is_in_danger(game_state, current_unit)
+        if is_danger:
             # Add penalty for being close to a bomb
-            reward += (-15)
+            reward += (-penalty)
 
         # TODO:
             # Add reward for being the last unit alive
@@ -280,30 +279,30 @@ class Agent():
         # Check for bombs in the same row
         for j in range(unit_position[1], max(0, unit_position[1] - 3) -1, -1):
             if gameboard[unit_position[0]][j] == 1:
-                return True
+                return True, 50 - abs(j - unit_position[1])*7
             elif gameboard[unit_position[0]][j] == -1:
                 break
         
         for j in range(unit_position[1], min(cols, unit_position[1] + 4)):
             if gameboard[unit_position[0]][j] == 1:
-                return True
+                return True, 50 - abs(j - unit_position[1])*7
             elif gameboard[unit_position[0]][j] == -1:
                 break
         
         # Check for bombs in the same column
         for i in range(unit_position[0], max(0, unit_position[0] - 3) -1, -1):
             if gameboard[i][unit_position[1]] == 1:
-                return True
+                return True, 50 - abs(i - unit_position[0])*7
             if gameboard[i][unit_position[1]] == -1:
                 break
             
         for i in range(unit_position[0], min(rows, unit_position[0] + 4)):
             if gameboard[i][unit_position[1]] == 1:
-                return True
+                return True, 50 - abs(i - unit_position[0])*7
             if gameboard[i][unit_position[1]] == -1:
                 break
         
-        return False
+        return False, -1
     
     def _get_gameboard(self, game_state):
         game_board = np.zeros((15,15), dtype=np.int32)

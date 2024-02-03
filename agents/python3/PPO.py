@@ -11,19 +11,14 @@ class PPO:
         self.batch_size = batch_size
     
     def compute_advantage(self, rewards, values):
-        # Calculate discounted rewards
-        discounted_rewards = []
-        cumulative_rewards = 0
-
-        for reward in reversed(rewards):
-            cumulative_rewards = reward + self.gamma * cumulative_rewards
-            discounted_rewards.insert(0, cumulative_rewards)
-        
         # Calculate advantages
-        # advantages = np.array(discounted_rewards) - np.array(list(reversed(values)))
         advantages = np.array(rewards) - np.array(values[:-3]) + self.gamma * np.array(values[3:])
         
-        return discounted_rewards, advantages
+        mean_advantages = np.mean(advantages)
+        std_advantages = np.std(advantages)
+        normalized_advantages = (advantages - mean_advantages) / (std_advantages + 1e-8)
+
+        return normalized_advantages
 
     def _surrogate_loss(self, old_probs, new_probs, advantages):
         ratio = new_probs / (old_probs + 1e-8)
