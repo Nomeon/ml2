@@ -7,7 +7,7 @@ import os
 import time
 import create_cnn
 import numpy as np
-from copy import copy
+from copy import deepcopy
 
 uri = os.environ.get(
     'GAME_CONNECTION_STRING') or "ws://127.0.0.1:3000/?role=agent&agentId=agentId&name=defaultName"
@@ -84,10 +84,10 @@ class Agent():
             self._values = []
 
             if self._game_count != 0:
-                self._old_probs = copy(self._new_probs)
+                self._old_probs = deepcopy(self._new_probs)
 
             self._new_probs = []
-            self._prev_state = game_state.copy()
+            self._prev_state = deepcopy(game_state)
 
             self._game_count += 1
 
@@ -98,9 +98,9 @@ class Agent():
             # Update Network
             self._old_probs = np.array(self._old_probs[:n])
 
-            rewards = copy(np.array(self._rewards[:n]))
-            values = copy(np.array(self._values[:n]))
-            states = copy(self._states[:n])
+            rewards = deepcopy(np.array(self._rewards[:n]))
+            values = deepcopy(np.array(self._values[:n]))
+            states = deepcopy(self._states[:n])
 
             _, advantages = self.ppo.compute_advantage(rewards, values)
             self._new_probs = (self.ppo.train(states, self._old_probs, advantages)).numpy().reshape(-1, self._num_actions)
@@ -108,7 +108,7 @@ class Agent():
             self._states = list(self._states[n:])
             self._rewards = list(self._rewards[n:])
             self._values = list(self._values[n:])
-            self._old_probs = copy(self._new_probs)
+            self._old_probs = deepcopy(self._new_probs)
 
         # get my units
         my_agent_id = game_state.get("connection").get("agent_id")
@@ -169,6 +169,7 @@ class Agent():
         # Expand dimension of array (representing number of samples)
         cnn_spatial_input = np.expand_dims(cnn_spatial_input, axis=0)
 
+        unit_num = 0
         # send each unit a random action
         for unit_id in my_units:
             cur_unit = ord(unit_id)
@@ -193,7 +194,8 @@ class Agent():
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
 
-            self._update_training_data(state=[cnn_spatial_input, non_spatial_data], 
+            unit_num += 1
+            self._update_training_data(unit_num=unit_num, state=[cnn_spatial_input, non_spatial_data], 
                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
             print(f'OUTPUT PROB: {action_probabilities}')
@@ -228,9 +230,9 @@ class Agent():
     def _save_weights(self):
         self.cnn.save_weights(f'/app/data/weights.h5')
 
-    def _update_training_data(self, state, game_state, tick_number, unit, value):
+    def _update_training_data(self, unit_num, state, game_state, tick_number, unit, value):
         if tick_number != 1:
-            reward = self._calculate_reward(game_state, unit)
+            reward = self._calculate_reward(unit_num, game_state, unit)
             print(f'REWARD: {reward}')
             self._rewards = np.append(self._rewards, reward)
             print(f'REWARDS: {self._rewards}')
@@ -238,7 +240,7 @@ class Agent():
         self._states.append(state)
         self._values.append(value)
 
-    def _calculate_reward(self, game_state, current_unit):
+    def _calculate_reward(self, unit_num, game_state, current_unit):
         reward = 0  # Placeholder reward, modify as per game objectives
 
         prev_coordinates = self._prev_state.get("unit_state")[current_unit].get("coordinates")
@@ -269,7 +271,10 @@ class Agent():
             # Add reward for being the last unit alive
             # Add penalty for being close to a bomb
 
-        self._prev_state = game_state.copy()
+        if unit_num == 3:
+            print("CHANGE")
+            self._prev_state = deepcopy(game_state)
+
         return reward
 
 def main():
