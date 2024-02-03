@@ -41,6 +41,7 @@ class Agent():
         self._states = []
         self._rewards = []
         self._values = []
+        self._chosen_actions = []
         self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)] for _ in range(self._batch_size)]
         self._new_probs = []
         
@@ -80,6 +81,7 @@ class Agent():
             self._states = []
             self._rewards = []
             self._values = []
+            self._chosen_actions = []
 
             if self._game_count != 0:
                 self._old_probs = deepcopy(self._new_probs)
@@ -98,13 +100,16 @@ class Agent():
             rewards = deepcopy(np.array(self._rewards[:n]))
             values = deepcopy(np.array(self._values[:n+3]))
             states = deepcopy(self._states[:n])
+            actions = deepcopy(self._chosen_actions[:n])
 
             advantages = self.ppo.compute_advantage(rewards, values)
-            self._new_probs = (self.ppo.train(states, self._old_probs, advantages)).numpy().reshape(-1, self._num_actions)
+            self._new_probs = self.ppo.train(states, self._old_probs, advantages, actions)
+            self._new_probs = self._new_probs.numpy().reshape(-1, self._num_actions)
 
             self._states = list(self._states[n:])
             self._rewards = list(self._rewards[n:])
             self._values = list(self._values[n:])
+            self._chosen_actions = list(self._chosen_actions[n:])
             self._old_probs = deepcopy(self._new_probs)
 
         # get my units
@@ -186,7 +191,7 @@ class Agent():
             action = np.random.choice(np.arange(self._num_actions), p=action_probabilities.numpy())
 
             unit_num += 1
-            self._update_training_data(unit_num=unit_num, state=[cnn_spatial_input, non_spatial_data], 
+            self._update_training_data(unit_num=unit_num, state=[cnn_spatial_input, non_spatial_data], action=action,
                                       game_state=game_state, tick_number=tick_number, unit=unit_id, value=estimated_baseline)
 
             print(f'ACTION: {self._actions[action].upper()} for unit {unit_id.upper()}\nPROBABILITY: {action_probabilities}')
@@ -218,13 +223,14 @@ class Agent():
     def _save_weights(self):
         self.cnn.save_weights(f'/app/data/weights.h5')
 
-    def _update_training_data(self, unit_num, state, game_state, tick_number, unit, value):
+    def _update_training_data(self, unit_num, state, action, game_state, tick_number, unit, value):
         if tick_number != 1:
             reward = self._calculate_reward(unit_num, game_state, unit)
             self._rewards = np.append(self._rewards, reward)
 
         self._states.append(state)
         self._values.append(value)
+        self._chosen_actions.append(action)
 
     def _calculate_reward(self, unit_num, game_state, current_unit):
         reward = 0  # Placeholder reward, modify as per game objectives
@@ -256,11 +262,7 @@ class Agent():
         is_danger, penalty = self._is_in_danger(game_state, current_unit)
         if is_danger:
             # Add penalty for being close to a bomb
-            reward += (-penalty)
-
-        # TODO:
-            # Add reward for being the last unit alive
-            
+            reward += (-penalty)            
 
         if unit_num == 3:
             # print("CHANGE")
