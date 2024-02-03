@@ -37,7 +37,6 @@ class Agent():
 
         # Init settings for training
         self._states = []
-        #self._actions = []
         self._rewards = []
         self._values = []
         self._old_probs = [[1/self._num_actions for _ in range(self._num_actions)] for _ in range(self._batch_size)]
@@ -86,6 +85,9 @@ class Agent():
 
             _, advantages = self.ppo.compute_advantage(self._rewards, self._values)
             self.ppo.train(self._states, self._old_probs, self._new_probs, advantages)
+            self._states = []
+            self._rewards = []
+            self._values = []
 
         if tick_number == 1000:
             # Reset settings for training new game
@@ -224,13 +226,12 @@ class Agent():
             reward = self._calculate_reward(game_state, unit)
             print(f'REWARD: {reward}')
             self._rewards = np.append(self._rewards, reward)
-        #print("HELLLLLO")
             print(f'REWARDS: {self._rewards}')
 
         self._states.append(state)
         #self._actions.append(action)
-        # self._values.append(value)
-        self._values = np.append(self._values, value)
+        self._values.append(value)
+        #self._values = np.append(self._values, value)
 
     def _calculate_reward(self, game_state, current_unit):
         reward = 0  # Placeholder reward, modify as per game objectives
