@@ -38,31 +38,3 @@ def create_cnn(spatial_input_shape, non_spatial_input_shape, num_actions, hidden
 
 
     return model
-
-
-# import numpy as np
-
-# # Example usage:
-# # Specify the input shape, number of channels, and other parameters
-# num_channels = 10
-# spatial_input_shape = (15, 15, num_channels) # width * height * num_channels
-# non_spatial_input_shape = 5 # number of features not related to spatial data (health, current blast radius etc.)
-# num_actions = 6 
-# hidden_units = 64
-
-# # Create the model
-# model = create_cnn(spatial_input_shape, non_spatial_input_shape, num_actions, hidden_units)
-
-# # Get input
-# # Note that np.expand_dims is used since the first dimension normally represents the batch size, so spatial data input shape = (batch size, width, height, num_channels), non-spatial input shape = (batch size, number of non-spatial features)
-# spatial_data = np.expand_dims(np.random.randint(0, 2, spatial_input_shape), axis=0) # Provide spatial data as input
-# non_spatial_data = np.expand_dims(np.random.randint(0, 6, non_spatial_input_shape), axis=0) # Provide non-spatial data as input
-
-# # Get action probabilities and estimated baseline
-# action_probabilities, estimated_baseline = model([spatial_data, non_spatial_data])
-
-# # Sample action
-# sampled_action = np.random.choice(np.arange(num_actions), p=action_probabilities[0].numpy())
-
-# # Get the estimated baseline
-# baseline_estimate = estimated_baseline[0][0]

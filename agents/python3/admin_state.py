@@ -181,12 +181,12 @@ class AdminState:
 
         elif data_type == "endgame_state":
             payload = data.get("payload")
-            self.parse_endgame_state(payload)
+            # self.parse_endgame_state(payload)
             print(f"Game over. Winner: Agent {self._winner}")
-            self.save_vars_from_state_to_disk()
-            self.reset_vars()
+            # self.save_vars_from_state_to_disk()
+            # self.reset_vars()
 
-            if self._game_count < 2:
+            if self._game_count < 20:
                 await self._send({"type": "request_game_reset", "world_seed": 1234, "prng_seed": 1234})
                 self._game_count += 1
                 print(f"Game reset requested to start game {self._game_count}")
@@ -202,12 +202,10 @@ class AdminState:
 
         units = game_state.get("unit_state")
         player_locations = {(unit): game_state.get("unit_state").get(unit).get("coordinates") for unit in units}
-        print(game_board)
-        print(player_locations)
+        # print(game_board)
+        # print(player_locations)
 
     async def _on_game_tick(self, game_tick):
-
-        
         events = game_tick.get("events")
         for event in events:
             event_type = event.get("type")
