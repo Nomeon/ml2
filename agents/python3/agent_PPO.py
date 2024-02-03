@@ -32,9 +32,9 @@ class Agent():
         self.cnn = create_cnn.create_cnn(self._input_shape, self._non_spatial_shape, self._num_actions, self._hidden_units)
 
         # PPO Hyperparameters
-        self._gamma = 0.8
-        self._lr = 0.003
-        self._epsilon = 0.3
+        self._gamma = 0.99
+        self._lr = 0.001
+        self._epsilon = 0.2
         self._batch_size = 30
 
         # Init settings for training
