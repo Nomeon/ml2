@@ -69,8 +69,8 @@ class AdminState:
     def parse_endgame_state(self, payload):
         self._winner = payload.get("winning_agent_id")
         self._total_ticks = payload.get("history")[-1].get("tick")
-        reward = self.handle_reward(payload)
-        print(reward)
+        # reward = self.handle_reward(payload)
+        # print(reward)
 
         agents_a = self._state.get("agents").get("a").get("unit_ids")
         for agent in agents_a:
@@ -186,7 +186,7 @@ class AdminState:
             self.save_vars_from_state_to_disk()
             self.reset_vars()
 
-            if self._game_count < 5:
+            if self._game_count < 10:
                 await self._send({"type": "request_game_reset", "world_seed": 1234, "prng_seed": 1234})
                 self._game_count += 1
                 print(f"Game reset requested to start game {self._game_count}")
