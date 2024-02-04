@@ -19,7 +19,8 @@ This project is a fork from the Coder One engine for the Bomberland challenge. T
 - `agents/python3/create_cnn.py`: Defines the Convolutional Neural Network architecture used to process the game state and make action predictions.
 - `agents/python3/admin_state.py`: Implements an admin agent who is responisble for launching games and saving the results.
 - `agents/python3/training_agent[1-5]` Folder containing the games, weights, and results of training the agents.
-- `agents/python3/ROUND[1-3]` Folder containing the tournament matches, including the games and results of those games.
+- `agents/python3/tournament/ROUND[1-3]` Folder containing the tournament matches, including the games and results of those games.
+- `agents/python3/validation` Folder containing the validation games against the base model.
 - `requirements.txt`: Contains the list of Python dependencies required to run the code.
 - `evaluation.ipynb`: Jupyter Notebook used to analyze the game files, to summarize the result.
 ## Usage
@@ -45,5 +46,3 @@ docker-compose up --abort-on-container-exit --force-recreate --build
 ---
 
 Happy gaming with your Bomberman AI Agent! If you have any questions or feedback, don't hesitate to reach out.
-
-

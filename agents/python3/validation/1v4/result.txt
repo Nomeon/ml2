@@ -1,0 +1,5 @@
+Total Statistics:
+Number of games: 10
+Winner Ratios: {'a': 0.1, 'b': 0.9, 'null': 0.0}
+Average number of survived units: {'a': 0.1, 'b': 2.0}
+Average number of bombs used per agent: {'a': 18.5, 'b': 2.7}
