@@ -41,11 +41,10 @@ class Agent():
 
         # PPO Hyperparameters
         self._gamma = 0.99
-        self._lr = 0.001      # Learning rate
-        self._epsilon = 0.2   # Clippping parameter
-        self._batch_size = 3  # (>= 3) One action and reward added for each unit
-                              # If each unit is alive it means 3 action per tick
-
+        self._lr = 0.001       # Learning rate
+        self._epsilon = 0.2    # Clippping parameter
+        self._batch_size = 30  # (>= 3) One action and reward added for each unit
+                               # If each unit is alive it means 3 action per tick
         # Init settings for training
         self._states = []
         self._rewards = []
