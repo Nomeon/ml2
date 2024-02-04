@@ -22,10 +22,10 @@ class Agent():
         self._agent_id = None
         self._my_id = "default"
 
-        self._is_training = True  # Set False for not updating the weights
-        self._is_save_weights = True
-        self._is_load_weights = False
-        self._input_path = None
+        self._is_training = False  # Set False for not updating the weights
+        self._is_save_weights = False
+        self._is_load_weights = True
+        self._input_path = 'training_agent2/a_weights_agent2.h5'
 
         # Init settings for cnn
         self._actions = ["up", "down", "left", "right", "bomb"]  # "detonate"

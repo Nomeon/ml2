@@ -16,10 +16,12 @@ This project is a fork from the Coder One engine for the Bomberland challenge. T
 
 - `agents/python3/agent[1-5].py`: Contains implementations of the AI agent class with different hyparparameter settings, including functions for interacting with the game environment and updating the policy based on rewards.
 - `agents/python3/ppo.py`: Implements the Proximal Policy Optimization algorithm for training the AI agent.
-- `agents/python3/cnn.py`: Defines the Convolutional Neural Network architecture used to process the game state and make action predictions.
+- `agents/python3/create_cnn.py`: Defines the Convolutional Neural Network architecture used to process the game state and make action predictions.
 - `agents/python3/admin_state.py`: Implements an admin agent who is responisble for launching games and saving the results.
+- `agents/python3/training_agent[1-5]` Folder containing the games, weights, and results of training the agents.
+- `agents/python3/ROUND[1-3]` Folder containing the tournament matches, including the games and results of those games.
 - `requirements.txt`: Contains the list of Python dependencies required to run the code.
-
+- `evaluation.ipynb`: Jupyter Notebook used to analyze the game files, to summarize the result.
 ## Usage
 
 ### Basic usage

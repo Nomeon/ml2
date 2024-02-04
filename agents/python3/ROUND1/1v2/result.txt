@@ -1,0 +1,5 @@
+Agent1 (a) vs Agent2 (b) Results:
+Number of games: 10
+Winner Ratios: {'a': 0.4, 'b': 0.6, 'null': 0.0}
+Average number of survived units: {'a': 0.7, 'b': 0.9}
+Average number of bombs used per agent: {'a': 15.5, 'b': 10.1}
