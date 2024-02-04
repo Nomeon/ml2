@@ -1,20 +1,24 @@
-[![Engine Version](https://img.shields.io/badge/engine%20ver.-2381-blue)](#release-notes)
+# Neural Network Performance in Bomberman: A Proximal Policy Optimization Study
 
-# Bomberland engine + starter kits
+*This is a repository for a course project at University of Twente.*
 
-## About
+## Overview
 
-[Bomberland](https://www.gocoder.one/bomberland) is a multi-agent AI competition inspired by the classic console game Bomberman.
+In this project, we aim to develop an AI agent capable of mastering Bomberman through the application of the PPO algorithm using CNN. Bomberman is a strategic video game where players navigate a grid-based environment, placing bombs to eliminate opponents and obstacles.
 
-Teams build intelligent agents using strategies from tree search to deep reinforcement learning. The goal is to compete in a 2D grid world collecting power-ups and placing explosives to take your opponent down.
+The AI agent is trained using reinforcement learning techniques, specifically PPO, to learn optimal strategies for navigating the Bomberman environment, placing bombs strategically, and ultimately outperforming opponents.
 
-This repo contains starter kits for working with the game engine + the engine source!
+This project is a fork from the Coder One engine for the Bomberland challenge. The original repository can be found [here](https://github.com/CoderOneHQ/bomberland).
 
 ![Bomberland multi-agent environment](./engine/bomberland-ui/src/source-filesystem/docs/2-environment-overview/bomberland-preview.gif "Bomberland")
 
-## Contributing
+## Repository Structure
 
-Contributions are always welcome, see our contribution guidelines [here](CONTRIBUTING.md)
+- `agents/python3/agent[1-5].py`: Contains implementations of the AI agent class with different hyparparameter settings, including functions for interacting with the game environment and updating the policy based on rewards.
+- `agents/python3/ppo.py`: Implements the Proximal Policy Optimization algorithm for training the AI agent.
+- `agents/python3/cnn.py`: Defines the Convolutional Neural Network architecture used to process the game state and make action predictions.
+- `agents/python3/admin_state.py`: Implements an admin agent who is responisble for launching games and saving the results.
+- `requirements.txt`: Contains the list of Python dependencies required to run the code.
 
 ## Usage
 
@@ -36,29 +40,8 @@ docker-compose up --abort-on-container-exit --force-recreate
 docker-compose up --abort-on-container-exit --force-recreate --build
 ```
 
-### Open AI gym wrapper
+---
 
-`docker-compose -f open-ai-gym-wrapper-compose.yml up --force-recreate --abort-on-container-exit`
+Happy gaming with your Bomberman AI Agent! If you have any questions or feedback, don't hesitate to reach out.
 
-## Starter kits
 
-| Kit                 | Link                                                                           | Description                                        | Up-to-date? | Contributed by                          |
-| ------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- | ----------- | --------------------------------------- |
-| Python3             | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/python3)    | Basic Python3 starter                              | ✅          | Coder One                               |
-| Python3-fwd         | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/python3)    | Includes example for using forward model simulator | ✅          | Coder One                               |
-| Python3-gym-wrapper | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/python3)    | Open AI Gym wrapper                                | ✅          | Coder One                               |
-| TypeScript          | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/typescript) | Basic TypeScript starter                           | ✅          | Coder One                               |
-| TypeScript-fwd      | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/typescript) | Includes example for using forward model simulator | ❌          | Coder One                               |
-| Go                  | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/go)         | Basic Go starter                                   | ❌          | [dtitov](https://github.com/dtitov)     |
-| C++                 | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/cpp)        | Basic C++ starter                                  | ✅          | [jfbogusz](https://github.com/jfbogusz) |
-| Rust                | [Link](https://github.com/CoderOneHQ/bomberland/tree/master/agents/rust)       | Basic Rust starter                                 | ❌          | [K-JBoon](https://github.com/K-JBoon)   |
-
-## Discussion and Questions
-
-Join our community on [Discord](https://discord.gg/Hd8TRFKsDa).
-
-Please let us know of any bugs or suggestions by [raising an Issue](https://github.com/CoderOneHQ/starter-kits/issues).
-
-## Changelog
-
-See changelog [here](CHANGELOG.md)
