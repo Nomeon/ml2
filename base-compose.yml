@@ -19,32 +19,6 @@ services:
         volumes:
             - ./agents/python3:/app
 
-    python3-fwd:
-        build:
-            context: agents/python3
-            dockerfile: Dockerfile.fwd
-
-    python3-fwd-dev:
-        build:
-            context: agents/python3
-            dockerfile: Dockerfile.fwd.dev
-        volumes:
-            - ./agents/python3:/app
-
-    python3-gym-dev:
-        build:
-            context: agents/python3
-            dockerfile: Dockerfile.gym.dev
-        volumes:
-            - ./agents/python3:/app
-
-    python3-ml2-dev:
-        build:
-            context: agents/python3
-            dockerfile: Dockerfile.ml2.dev
-        volumes:
-            - ./agents/python3:/app
-
     python3-admin-dev:
         build:
             context: agents/python3
@@ -58,3 +32,38 @@ services:
             dockerfile: Dockerfile.ppo.dev
         volumes:
             - ./agents/python3:/app
+
+    python3-agent1:
+        build:
+            context: agents/python3
+            dockerfile: Dockerfile.agent1.dev
+        volumes:
+            - ./agents/python3:/app
+
+    python3-agent2:
+        build:
+            context: agents/python3
+            dockerfile: Dockerfile.agent2.dev
+        volumes:
+            - ./agents/python3:/app    
+
+    python3-agent3:
+        build:
+            context: agents/python3
+            dockerfile: Dockerfile.agent3.dev
+        volumes:
+            - ./agents/python3:/app    
+
+    python3-agent4:
+        build:
+            context: agents/python3
+            dockerfile: Dockerfile.agent4.dev
+        volumes:
+            - ./agents/python3:/app    
+
+    python3-agent5:
+        build:
+            context: agents/python3
+            dockerfile: Dockerfile.agent5.dev
+        volumes:
+            - ./agents/python3:/app    
