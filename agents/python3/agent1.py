@@ -23,7 +23,7 @@ class Agent():
         self._my_id = "default"
 
         self._is_training = True  # Set False for not updating the weights
-        self._is_save_weights = False
+        self._is_save_weights = True
         self._is_load_weights = False
         self._input_path = None
 
@@ -82,7 +82,7 @@ class Agent():
 
         if tick_number == 1000:
             if self._is_save_weights:
-                output_path = f'{self._agent_id}_weights_{self._my_id}.h5'
+                output_path = f'{self._agent_id}_weights_agent1.h5'
 
                 self.cnn.save_weights(output_path)
             return

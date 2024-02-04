@@ -52,7 +52,7 @@ class AdminState:
             }
         }
 
-        with open(f"/app/data/game{self._game_count}.txt", "w") as file:
+        with open(f"game{self._game_count}.txt", "w") as file:
             file.write(json.dumps(dict_to_save))
 
     def reset_vars(self):
@@ -181,12 +181,12 @@ class AdminState:
 
         elif data_type == "endgame_state":
             payload = data.get("payload")
-            # self.parse_endgame_state(payload)
+            self.parse_endgame_state(payload)
             print(f"Game over. Winner: Agent {self._winner}")
-            # self.save_vars_from_state_to_disk()
-            # self.reset_vars()
+            self.save_vars_from_state_to_disk()
+            self.reset_vars()
 
-            if self._game_count < 20:
+            if self._game_count < 5:
                 await self._send({"type": "request_game_reset", "world_seed": 1234, "prng_seed": 1234})
                 self._game_count += 1
                 print(f"Game reset requested to start game {self._game_count}")
